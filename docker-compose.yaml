@@ -1,0 +1,87 @@
+version: '3.9'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    network_mode: 'host'
+    hostname: 'zookeeper'
+
+  kafka:
+    image: wurstmeister/kafka
+    command: [start-kafka.sh]
+    network_mode: 'host'
+    hostname: kafka
+    environment:
+      KAFKA_CREATE_TOPICS: "testing:1:1"
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: localhost:2181
+      KAFKA_ADVERTISED_PORT: 9092
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zookeeper
+
+  prometheus:
+    image: prom/prometheus:latest
+    command: --config.file=/etc/prometheus/prometheus.yaml
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ACCESS_KEY: "testkey"
+      MINIO_SECRET_KEY: "testsecret"
+      MINIO_PROMETHEUS_URL: "http://prometheus:9090"
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+    volumes:
+      - minio_data:/data
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+  
+  db:
+    image: postgres:14.1-alpine
+    container_name: ml_server_db
+    ports:
+      - 5500:5500
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_volume:/var/lib/postgresql/data/
+      - ./scripts/create-database.sh:/docker-entrypoint-initdb.d/create-database.sh
+    command: -p 5500
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h db -p 5500"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mlflow:
+    image: tracker_ml
+    container_name: mlflow_tracker
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./scripts/wait-for-it.sh:/app/wait-for-it.sh
+    restart: unless-stopped
+    command: bash wait-for-it.sh db:5500 -t 90 -- mlflow server --backend-store-uri postgresql+psycopg2://postgres:postgres@db:5500/mlflow --default-artifact-root minio://mlflow -h 0.0.0.0:5000
+    depends_on: 
+      - db
+      - minio
+
+volumes:
+  minio_data:
+  db_volume:
