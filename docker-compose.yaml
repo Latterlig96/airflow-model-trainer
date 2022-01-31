@@ -61,7 +61,7 @@ services:
     command: -p 5500
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h db -p 5500"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -h db -p 5500"]
       interval: 10s
       timeout: 5s
       retries: 5
