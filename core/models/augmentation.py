@@ -28,11 +28,9 @@ class TestAugmentation:
         return transform['image']
 
 class Augmentation:
-
-    def __init__(self, mode: str):
-        self._get_augmentation_by_mode(mode)
     
-    def _get_augmentation_by_mode(self,
+    @classmethod
+    def get_augmentation_by_mode(cls,
                                  mode: str) -> Union[TrainAugmentation, TestAugmentation]:
         if mode == "val" or mode == "test":
             return TestAugmentation()

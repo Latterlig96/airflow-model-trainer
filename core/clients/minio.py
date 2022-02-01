@@ -42,7 +42,6 @@ class MinioHandler:
             return True
         except KeyError as e:
             return False
-
     def create_bucket(self,
                       bucket_name: str,
                       **kwargs) -> bool:
@@ -110,8 +109,8 @@ class MinioHandler:
             logging.exception(e)
 
         if to_numpy:
-            buf = np.frombuffer(response.read(), np.uint8)
-            return cv2.imdecode(buf, cv2.IMREAD_COLOR)
+            img = np.asarray(bytearray(response.read()), np.uint8).reshape(768, 1366, 3)
+            return img
         return response.read()
 
     def clear_bucket(self,

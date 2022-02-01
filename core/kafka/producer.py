@@ -5,6 +5,7 @@ import cv2
 import asyncio
 import threading
 from core.interfaces import WorkerTask
+import logging
 
 class Producer(WorkerTask): 
 
@@ -43,17 +44,19 @@ class Producer(WorkerTask):
     async def start_task(self, *args, **kwargs):
         producer = await self._kafka_hook()
         await producer.start()
+        is_queue = kwargs.get('queue', None)
+        if is_queue is None:
+            raise Exception("Could not obtain queue from context, aborting task")
         try:
             while not kwargs['queue'].empty():
-                await asyncio.sleep(0.1)
-                item = await kwargs['queue'].get()
+                item = await asyncio.wait_for(kwargs['queue'].get(), 0.1)
+                logging.info(f"Obtained frame from queue")
                 if item is not None:
                     buf = cv2.imencode(".jpg", item)[1].tostring()
                 await producer.send_and_wait(self.config.topic, buf)
-                await asyncio.sleep(0.1)
+                logging.info("Published message to topic")
         finally:
             await producer.stop()
             self._set_task_status()
-            is_queue = kwargs.get('queue', False)
-            if not is_queue:
-                kwargs['queue'].task_done()
+            logging.info(f"Closing task {self.__class__.__name__}")
+            kwargs['queue'].task_done()

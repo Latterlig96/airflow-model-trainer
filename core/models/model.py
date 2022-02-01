@@ -13,9 +13,12 @@ class EfficientNetB1(nn.Module):
         self.backbone = timm.create_model(
             'efficientnet_b1', pretrained=True, num_classes=0, in_chans=3
         )
+        num_features = self.backbone.num_features
+        self.head = nn.Linear(num_features, 1)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.backbone(x)
+        out = self.head(out)
         return out
 
 class Model(LightningModule):
@@ -36,12 +39,12 @@ class Model(LightningModule):
         self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-5)
     
     def _build_scheduler(self): 
-        self.scheduler = torch.optim.lr_scheduler.CossineAnnealingWarmRestarts(
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
             self.optimizer, T_0=20, eta_min=1e-4
         )
     
     def _build_metric(self):
-        self.metric = torchmetrics.F1Score(num_classes=2)
+        self.metric = torchmetrics.F1Score(num_classes=1)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.model(x)
@@ -53,7 +56,7 @@ class Model(LightningModule):
     
     def validation_step(self, batch, batch_idx):
         loss, pred, labels = self._share_step(batch)
-        return {'loss': loss, 'pred': pred, 'labels': labels}
+        return {'loss': loss.detach(), 'pred': pred.detach(), 'labels': labels.detach()}
     
     def training_epoch_end(self, outputs):
         self._share_epoch_end(outputs, 'train')
@@ -63,9 +66,8 @@ class Model(LightningModule):
     
     def _share_step(self, batch):
         images, labels = batch
-        pred = self.forward(images).squeeze(1).sigmoid()
-        loss = self.criterion(pred, labels)
-
+        pred = self.forward(images.float()).sigmoid()
+        loss = self.criterion(pred, labels.float())
         return loss, pred, labels
     
     def _share_epoch_end(self, outputs, mode):

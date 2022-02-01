@@ -42,9 +42,8 @@ class Trainer:
             accumulate_grad_batches=1,
             progress_bar_refresh_rate=1,
             fast_dev_run=1,
-            num_sanity_val_steps=0
-            resume_from_checkpoint=None
-        )
+            num_sanity_val_steps=0,
+            resume_from_checkpoint=None)
         trainer.fit(self.model, datamodule=module)
         logging.info("Training went successfully, you cant view logs on MLFLOW UI")
         return True
