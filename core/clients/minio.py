@@ -1,11 +1,10 @@
 import io
 import logging
 from typing import Any, Union, TypeVar
-import cv2
 import numpy as np
 from minio import Minio
 from minio.error import S3Error
-from config import MinioConfig
+from core.config import MinioConfig
 from urllib3.exceptions import MaxRetryError
 from airflow.models import Variable
 
@@ -42,6 +41,7 @@ class MinioHandler:
             return True
         except KeyError as e:
             return False
+            
     def create_bucket(self,
                       bucket_name: str,
                       **kwargs) -> bool:
@@ -107,9 +107,8 @@ class MinioHandler:
                                               object_name, **kwargs)
         except S3Error as e:
             logging.exception(e)
-
         if to_numpy:
-            img = np.asarray(bytearray(response.read()), np.uint8).reshape(768, 1366, 3)
+            img = np.frombuffer(response.read(), dtype=np.uint8).reshape(768, 1366, 3)
             return img
         return response.read()
 

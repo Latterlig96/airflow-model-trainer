@@ -133,7 +133,7 @@ dmypy.json
 airflow
 
 #Mlflow
-mlruns
+mlruns/
 
 #Media files
 *.mp4

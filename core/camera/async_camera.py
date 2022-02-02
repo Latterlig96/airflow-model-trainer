@@ -38,6 +38,7 @@ class AsyncCamera(WorkerTask):
                 ret, frame = camera.read()
                 if not ret:
                     self.set_task_status()
+                frame = cv2.resize(frame, (1366, 768))
                 await asyncio.wait_for(kwargs['queue'].put(frame), 0.1)
                 if kwargs['queue'].full():
                     logging.info("Queue sleeps to prevent memory increase")

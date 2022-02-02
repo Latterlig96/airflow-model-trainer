@@ -52,11 +52,11 @@ class Model(LightningModule):
     
     def training_step(self, batch, batch_idx):
         loss, pred, labels = self._share_step(batch)
-        return {'loss': loss, 'pred': pred, 'labels': labels}
+        return {'loss': loss, 'pred': pred.detach(), 'labels': labels.detach()}
     
     def validation_step(self, batch, batch_idx):
         loss, pred, labels = self._share_step(batch)
-        return {'loss': loss.detach(), 'pred': pred.detach(), 'labels': labels.detach()}
+        return {'loss': loss, 'pred': pred.detach(), 'labels': labels.detach()}
     
     def training_epoch_end(self, outputs):
         self._share_epoch_end(outputs, 'train')
@@ -80,7 +80,7 @@ class Model(LightningModule):
         preds = torch.cat(preds)
         labels = torch.cat(labels)
         metric = self.metric(preds, labels)
-        self.log(f'{mode}_loss', metric)
+        self.logger.experiment.log_metric(f'{mode}_loss', metric)
 
     def configure_optimizers(self) -> Dict[Any, Any]:
         self._build_optimizer()

@@ -29,5 +29,5 @@ class WorkerOperator(BaseOperator):
         created = self._manager.register_tasks(tasks)
         return created 
 
-    def execute(self) -> None:
+    def execute(self, context: AirflowContext) -> None:
         asyncio.run(self._execute_async())

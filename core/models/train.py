@@ -20,7 +20,7 @@ class Trainer:
         seed_everything(47)
         self.client = MinioHandler()
         self.model = Model()
-        self.logger = MLFlowLogger()
+        self.logger = MLFlowLogger(tracking_uri="http://localhost:5000", artifact_location="http://localhost:9000")
         earlystopping = EarlyStopping(monitor="val_loss", verbose=True, patience=30)
         lr_monitor = callbacks.LearningRateMonitor()
         loss_checkpoint = callbacks.ModelCheckpoint(filename="best_loss", monitor="val_loss",
@@ -38,7 +38,7 @@ class Trainer:
             logger=self.logger,
             max_epochs=100,
             callbacks=self.callbacks,
-            gpus=1,
+            gpus=1 if torch.cuda.is_available() else 0,
             accumulate_grad_batches=1,
             progress_bar_refresh_rate=1,
             fast_dev_run=1,

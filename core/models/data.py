@@ -4,6 +4,7 @@ from torch.utils.data import Dataset, DataLoader
 from core.clients import MinioHandler
 from .augmentation import Augmentation
 from typing import Dict, TypeVar
+
 _Augmentation = TypeVar('_Augmentation')
 
 class ClientDataset(Dataset):
@@ -13,6 +14,7 @@ class ClientDataset(Dataset):
                  bucket_name: str,
                  transform: _Augmentation,
                  **kwargs):
+        super().__init__()
         self.client = client
         self.bucket_name = bucket_name
         self.transform = transform
